@@ -24,8 +24,25 @@ enum layers {
     WIN_FN,
 };
 
-enum jtu_custom_keycodes { MY_IME_OFF_LALT, MY_IME_ON_RALT, JU_2 = SAFE_RANGE, JU_6, JU_7, JU_8, JU_9, JU_0, JU_MINS, JU_EQL, JU_LBRC, JU_RBRC, JU_BSLS, JU_SCLN, JU_QUOT, JU_GRV, JU_CAPS, JTU_SAFE_RANGE };
 // clang-format off
+enum jtu_custom_keycodes {
+    MY_IME_OFF_LALT,
+    JU_2 = SAFE_RANGE,
+    JU_6,
+    JU_7,
+    JU_8,
+    JU_9,
+    JU_0,
+    JU_MINS,
+    JU_EQL,
+    JU_LBRC,
+    JU_RBRC,
+    JU_BSLS,
+    JU_SCLN,
+    JU_QUOT,
+    JU_GRV,
+    JTU_SAFE_RANGE };
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [MAC_BASE] = LAYOUT_ansi_87(
         KC_ESC,             KC_BRID,  KC_BRIU,  KC_MCTRL, KC_LNPAD, BL_DOWN,  BL_UP,    KC_MPRV,  KC_MPLY,  KC_MNXT,  KC_MUTE,  KC_VOLD,  KC_VOLU,  KC_SNAP,  KC_SIRI,  BL_STEP,
@@ -61,9 +78,67 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 // clang-format on
 
+// shift時のコードの制御
+// jisの場合にshiftキー無しで押せる記号
+void process_shift_non_tapped(uint16_t jis_code, uint16_t tapped_code) {
+    bool lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
+    bool rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
+    if (lshift || rshift) {
+        if (lshift) unregister_code(KC_LSFT);
+        if (rshift) unregister_code(KC_RSFT);
+        register_code(jis_code);
+        unregister_code(jis_code);
+        if (lshift) register_code(KC_LSFT);
+        if (rshift) register_code(KC_RSFT);
+    } else {
+        register_code(tapped_code);
+        unregister_code(tapped_code);
+    }
+}
+
+// shift時のコードの制御
+void process_shift_tapped(uint16_t jis_code, uint16_t tapped_code) {
+    bool lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
+    bool rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
+    if (lshift || rshift) {
+        if (lshift) unregister_code(KC_LSFT);
+        if (rshift) unregister_code(KC_RSFT);
+        register_code(KC_LSFT);
+        register_code(jis_code);
+        unregister_code(jis_code);
+        unregister_code(KC_LSFT);
+        if (lshift) register_code(KC_LSFT);
+        if (rshift) register_code(KC_RSFT);
+    } else {
+        register_code(tapped_code);
+        unregister_code(tapped_code);
+    }
+}
+
+// jisキーボードにおいてもshiftを押しながら入力する必要がある文字
+void process_shift_jis_tapped(uint16_t jis_code, uint16_t tapped_code) {
+    bool lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
+    bool rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
+    if (lshift || rshift) {
+        if (lshift) unregister_code(KC_LSFT);
+        if (rshift) unregister_code(KC_RSFT);
+        register_code(KC_LSFT);
+        register_code(jis_code);
+        unregister_code(jis_code);
+        unregister_code(KC_LSFT);
+        if (lshift) register_code(KC_LSFT);
+        if (rshift) register_code(KC_RSFT);
+    } else {
+        register_code(KC_LSFT);
+        register_code(tapped_code);
+        unregister_code(tapped_code);
+        unregister_code(KC_LSFT);
+    }
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    static bool     lshift            = false;
-    static bool     rshift            = false;
+    // static bool     lshift            = false;
+    // static bool     rshift            = false;
     static bool     ime_toggle_active = false;
     static uint16_t ime_timer         = 0;
     if (!process_record_keychron_common(keycode, record)) {
@@ -73,268 +148,72 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case JU_2:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LBRC);
-                    unregister_code(KC_LBRC);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_2);
-                    unregister_code(KC_2);
-                }
+                process_shift_non_tapped(KC_LBRC, KC_2);
             }
             return false;
         case JU_6:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_EQL);
-                    unregister_code(KC_EQL);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_6);
-                    unregister_code(KC_6);
-                }
+                process_shift_non_tapped(KC_EQL, KC_6);
             }
             return false;
         case JU_7:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_6);
-                    unregister_code(KC_6);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_7);
-                    unregister_code(KC_7);
-                }
+                process_shift_tapped(KC_6, KC_7);
             }
             return false;
         case JU_8:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_QUOT);
-                    unregister_code(KC_QUOT);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_8);
-                    unregister_code(KC_8);
-                }
+                process_shift_tapped(KC_QUOT, KC_8);
             }
             return false;
         case JU_9:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_8);
-                    unregister_code(KC_8);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_9);
-                    unregister_code(KC_9);
-                }
+                process_shift_tapped(KC_8, KC_9);
             }
             return false;
         case JU_0:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_9);
-                    unregister_code(KC_9);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_0);
-                    unregister_code(KC_0);
-                }
+                process_shift_tapped(KC_9, KC_0);
             }
             return false;
         case JU_MINS:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_INT1);
-                    unregister_code(KC_INT1);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_MINS);
-                    unregister_code(KC_MINS);
-                }
+                process_shift_tapped(KC_INT1, KC_MINS);
             }
             return false;
         case JU_EQL:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_SCLN);
-                    unregister_code(KC_SCLN);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_LSFT);
-                    register_code(KC_MINS);
-                    unregister_code(KC_MINS);
-                    unregister_code(KC_LSFT);
-                }
+                process_shift_jis_tapped(KC_SCLN, KC_MINS);
             }
             return false;
         case JU_LBRC:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_RBRC);
-                    unregister_code(KC_RBRC);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_RBRC);
-                    unregister_code(KC_RBRC);
-                }
+                process_shift_tapped(KC_RBRC, KC_RBRC);
             }
             return false;
         case JU_RBRC:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_NUHS);
-                    unregister_code(KC_NUHS);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_NUHS);
-                    unregister_code(KC_NUHS);
-                }
+                process_shift_tapped(KC_NUHS, KC_NUHS);
             }
             return false;
         case JU_BSLS:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_INT3);
-                    unregister_code(KC_INT3);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_INT1);
-                    unregister_code(KC_INT1);
-                }
+                process_shift_tapped(KC_INT3, KC_INT1);
             }
             return false;
         case JU_SCLN:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_QUOT);
-                    unregister_code(KC_QUOT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_SCLN);
-                    unregister_code(KC_SCLN);
-                }
+                process_shift_non_tapped(KC_QUOT, KC_SCLN);
             }
             return false;
         case JU_QUOT:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_2);
-                    unregister_code(KC_2);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_LSFT);
-                    register_code(KC_7);
-                    unregister_code(KC_7);
-                    unregister_code(KC_LSFT);
-                }
+                process_shift_jis_tapped(KC_2, KC_7);
             }
             return false;
         case JU_GRV:
             if (record->event.pressed) {
-                lshift = keyboard_report->mods & MOD_BIT(KC_LSFT);
-                rshift = keyboard_report->mods & MOD_BIT(KC_RSFT);
-                if (lshift || rshift) {
-                    if (lshift) unregister_code(KC_LSFT);
-                    if (rshift) unregister_code(KC_RSFT);
-                    register_code(KC_LSFT);
-                    register_code(KC_EQL);
-                    unregister_code(KC_EQL);
-                    unregister_code(KC_LSFT);
-                    if (lshift) register_code(KC_LSFT);
-                    if (rshift) register_code(KC_RSFT);
-                } else {
-                    register_code(KC_LSFT);
-                    register_code(KC_LBRC);
-                    unregister_code(KC_LBRC);
-                    unregister_code(KC_LSFT);
-                }
+                process_shift_jis_tapped(KC_EQL, KC_LBRC);
             }
             return false;
         case MY_IME_OFF_LALT: // Altキーの単押し
